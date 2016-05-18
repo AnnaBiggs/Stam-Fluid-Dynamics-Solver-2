@@ -24,32 +24,62 @@ dt = 1   #defining dt
 
 visc = 1   #defining viscosity constant
         
+#Stam's set boundary function
+
+#def set_bnd (N_loc, b, array):
+#    for i in range (1,N_loc):
+#        if b==1:
+#            array[0,i]= -array[1,i]
+#            array[N_loc+1, i] = -array[N_loc, i]
+#        else:
+#            array[0,i] = array[1,i]
+#            array[N_loc+1 ,i] = array[N_loc, i]
+#            
+#        if b==2:
+#            array[i,0] = -array[i,1]
+#            array[i,N_loc + 1] = -array[i, N_loc]
+#        else:
+#            array[i,0] = array[i,1]
+#            array[i, N_loc+1] = array[i, N_loc]
+#            
+#    array[0,0] = 0.5*(array[1,0]+ array[0,1])
+#    array[0, N_loc + 1] = 0.5*(array[1,N_loc + 1] + array[0, N_loc])
+#    array[N_loc + 1, 0] = 0.5*(array[N_loc,0] + array[N_loc + 1,1])
+#    array[N_loc + 1, N_loc + 1] = 0.5*(array[N_loc, N_loc + 1] + array[N_loc + 1, N_loc])
 
 
-def set_bnd (N_loc, b, array):
-    for i in range (1,N_loc):
-        if b==1:
-            array[0,i]= -array[1,i]
-            array[N_loc+1, i] = -array[N_loc, i]
-        else:
-            array[0,i] = array[1,i]
-            array[N_loc+1 ,i] = array[N_loc, i]
-            
-        if b==2:
-            array[i,0] = -array[i,1]
-            array[i,N_loc + 1] = -array[i, N_loc]
-        else:
-            array[i,0] = array[i,1]
-            array[i, N_loc+1] = array[i, N_loc]
-            
-    array[0,0] = 0.5*(array[1,0]+ array[0,1])
-    array[0, N_loc + 1] = 0.5*(array[1,N_loc + 1] + array[0, N_loc])
-    array[N_loc + 1, 0] = 0.5*(array[N_loc,0] + array[N_loc + 1,1])
-    array[N_loc + 1, N_loc + 1] = 0.5*(array[N_loc, N_loc + 1] + array[N_loc + 1, N_loc])
+# Anna's set boundary functions
+
+# pushes same boundary values into walls cells
+
+def set_bnd0 (N_loc, array):
+    for i in range (0,N_loc+2):
+        array[0,i] = array[1,i]
+        array[N_loc+1,i] = array[N_loc,i]
+        array[i,0] = array[i,1]
+        array[i,N_loc+1] = array[i,N_loc]
+
+# negates left and right wall values
+
+def set_bnd1 (N_loc, array):
+    for i in range (0,N_loc+2):
+        array[0,i] = array[1,i]
+        array[N_loc+1,i] = array[N_loc,i]
+        array[i,0] = -array[i,1]
+        array[i,N_loc+1] = -array[i,N_loc]
+
+# negates top and bottom wall values
+
+def set_bnd2 (N_loc, array):
+    for i in range (0,N_loc+2):
+        array[0,i] = -array[1,i]
+        array[N_loc+1,i] = -array[N_loc,i]
+        array[i,0] = array[i,1]
+        array[i,N_loc+1] = array[i,N_loc]
 
 
 
-def diffuse(N_loc, dens_array, dens_array0, diff, dt, b):
+def diffuse(N_loc, dens_array, dens_array0, diff, dt):
     c = dt*diff*N_loc*N_loc
     k=0
     while (k<20):
@@ -58,11 +88,11 @@ def diffuse(N_loc, dens_array, dens_array0, diff, dt, b):
                 dens_array[i,j]=(dens_array0[i,j]+c*(dens_array[i-1,j] + dens_array[i+1,j] + dens_array[i,j-1] + dens_array[i, j+1]))/(1+4*c)
         k = k + 1
         
-    set_bnd(N_loc,b,dens_array)
+#    set_bnd(N_loc,b,dens_array)
     
     
         
-def advect(N_loc, b, dens_array, dens_array0, h_vel, v_vel, dt):
+def advect(N_loc, dens_array, dens_array0, h_vel, v_vel, dt):
     dt0 = dt*N_loc
     for i in range (1,N_loc):
         for j in range (1, N_loc):
@@ -93,7 +123,7 @@ def advect(N_loc, b, dens_array, dens_array0, h_vel, v_vel, dt):
             
             dens_array[i,j] = s0*(t0*dens_array0[i0,j0] + t1*dens_array0[i0,j1]) + s1*(t0*dens_array0[i1,j0] + t1*dens_array0[i1,j1])
     
-    set_bnd(N_loc, b, dens_array)
+#    set_bnd(N_loc, b, dens_array)
     
 
 def project(N_loc, h_vel, v_vel, p, div):
@@ -103,10 +133,11 @@ def project(N_loc, h_vel, v_vel, p, div):
         for j in range (1,N_loc):
             div[i,j] = -0.5*h*(h_vel[i+1,j] - h_vel[i-1,j] + v_vel[i,j+1] - v_vel[i,j-1])
             p[i,j] = 0
-    set_bnd(N_loc, 0, div)
-    set_bnd(N_loc, 0, p)
+    set_bnd0(N_loc, div)
+    set_bnd0(N_loc, p)
     
-    plt.imshow(div, cmap="gray") # draw the new plot
+    plt.imshow(div, cmap="spectral")# draw the new plot
+    plt.colorbar()
     plt.show(block=False)
     plt.draw()
     
@@ -115,10 +146,11 @@ def project(N_loc, h_vel, v_vel, p, div):
             for j in range (1,N_loc):
                 p[i,j] = (div[i,j] + p[i-1,j] + p[i+1,j] + p[i,j-1] + p[i,j+1])/4
         
-        set_bnd(N_loc, 0, p)
+        set_bnd0(N_loc, p)
         k = k+1
         
-    plt.imshow(p, cmap="gray") # draw the new plot
+    plt.imshow(p, cmap="spectral") # draw the new plot
+    plt.colorbar()
     plt.show(block=False)
     plt.draw()
     
@@ -126,8 +158,8 @@ def project(N_loc, h_vel, v_vel, p, div):
         for j in range (1, N_loc):
             h_vel[i,j] -= 0.5*(p[i+1,j] - p[i-1,j])/h
             v_vel[i,j] -= 0.5*(p[i,j+1] - p[i,j-1])/h
-    set_bnd(N_loc, 1, h_vel)
-    set_bnd(N_loc, 2, v_vel)
+    set_bnd1(N_loc, h_vel)
+    set_bnd2(N_loc, v_vel)
 
 
 
@@ -142,6 +174,8 @@ def vel_step(N_loc, h_vel, v_vel, h_vel0, v_vel0, visc, dt):
     project (N_loc, h_vel, v_vel, h_vel0, v_vel0)
     
     
+
+
 #while True:
 #    vel_step(N, h, v, h0, v0, visc, dt)
 #    plt.show(block=False)
@@ -149,11 +183,13 @@ def vel_step(N_loc, h_vel, v_vel, h_vel0, v_vel0, visc, dt):
 plt.quiver(v, h, units = 'x', scale = .5)
 plt.show()
 
-diffuse(18,h,h0,visc,dt,1)
+diffuse(18,h,h0,visc,dt)
+set_bnd1(18,h)
 plt.quiver(v, h, units = 'x', scale = .5)
 plt.show()
 
-diffuse(18,v,v0,visc,dt,2)
+diffuse(18,v,v0,visc,dt)
+set_bnd2(18,v)
 plt.quiver(v, h, units = 'x', scale = .5)
 plt.show()
 
