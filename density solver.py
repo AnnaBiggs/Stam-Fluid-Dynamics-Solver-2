@@ -3,49 +3,68 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Creates initial density and velocity arrays
 
-a0 = np.zeros((100,100))    #create iniital density array
-a = np.zeros((100,100))        #create next density array
-plt.imshow(a, cmap="gray")
-plt.show(block=False)
+#a0 = np.zeros((100,100))    #create iniital density array
+#a = np.zeros((100,100))        #create next density array
+#plt.imshow(a, cmap="spectral")
+#plt.colorbar()
+#plt.show(block=False)
+#
+#
+#N = a0.shape[0]-2   #sets N as 2 less than the number of grid cells per plot side
+#
+dt = 1   #defining dt
+#
+visc = 1   #defining viscosity constant
+#
+#for i in range (80,90):
+#    for j in range (40,50):
+#        a[i,j]=1        
+#
+#
+#h0 = np.zeros((100,100)) #creates initial horizontal and vertical velocity array
+#v0 = np.zeros((100,100))
+#
+#
+#v = np.zeros((100,100))
+#h = np.zeros((100,100))
+#
+#for i in range (45,55):
+#    for j in range (45,55):
+#        v[i,j] = 1
+#        h[i,j] = 1
+        
+# Smaller velocity array for visualization
+        
+h0 = np.ones((20,20)) #creates initial horizontal and vertical velocity array
+v0 = np.ones((20,20))
 
 
-N = a0.shape[0]-2   #sets N as 2 less than the number of grid cells per plot side
+v = np.zeros((20,20))
+h = np.zeros((20,20))
 
-dt = 0.1   #defining dt
+#X,Y = meshgrid(arange(0,10),arange(0,10))
 
-visc = .1   #defining viscosity constant
-
-for i in range (80,90):
-    for j in range (40,50):
-        a[i,j]=1        
-
-
-h0 = np.zeros((100,100)) #creates initial horizontal and vertical velocity array
-v0 = np.zeros((100,100))
-
-
-v = np.zeros((100,100))
-h = np.zeros((100,100))
-
-for i in range (45,55):
-    for j in range (45,55):
+for i in range (8,12):
+    for j in range (8,12):
         v[i,j] = 1
         h[i,j] = 1
         
-
+N = 18   #sets N as 2 less than the number of grid cells per plot side
 
         
 #displays the initial state of density array
 
-plt.imshow(a, cmap="gray") # draw the new plot
-plt.show(block=False)
-plt.draw()                 # update the window
+#plt.imshow(a, cmap="spectral") # draw the new plot
+#plt.colorbar()
+#plt.show(block=False)
+#plt.draw()                 # update the window
 
 # using "loc" to indicate the local variable version of N
 
 def set_bnd (N_loc, b, array):
-    for i in range (1,N_loc):
+    for i in range (1,N_loc+1):
         if b==1:
             array[0,i]= -array[1,i]
             array[N_loc+1, i] = -array[N_loc, i]
@@ -71,8 +90,8 @@ def diffuse(N_loc, dens_array, dens_array0, diff, dt, b):
     c = dt*diff*N_loc*N_loc
     k=0
     while (k<20):
-        for i in range (1,N_loc):
-            for j in range (1,N_loc):
+        for i in range (1,N_loc+1):
+            for j in range (1,N_loc+1):
                 dens_array[i,j]=(dens_array0[i,j]+c*(dens_array[i-1,j] + dens_array[i+1,j] + dens_array[i,j-1] + dens_array[i, j+1]))/(1+4*c)
         k = k + 1
         
@@ -82,8 +101,8 @@ def diffuse(N_loc, dens_array, dens_array0, diff, dt, b):
         
 def advect(N_loc, b, dens_array, dens_array0, h_vel, v_vel, dt):
     dt0 = dt*N_loc
-    for i in range (1,N_loc):
-        for j in range (1, N_loc):
+    for i in range (1,N_loc+1):
+        for j in range (1, N_loc+1):
             x = i - dt0*v_vel[i,j]  #could potentially have v_vel and h_vel switched around here...
             y = j - dt0*h_vel[i,j]
             
@@ -117,22 +136,32 @@ def advect(N_loc, b, dens_array, dens_array0, h_vel, v_vel, dt):
 def project(N_loc, h_vel, v_vel, p, div):
     h = 1.0/N_loc
     k=0
-    for i in range (1,N_loc):
-        for j in range (1,N_loc):
+    for i in range (1,N_loc+1):
+        for j in range (1,N_loc+1):
             div[i,j] = -0.5*h*(h_vel[i+1,j] - h_vel[i-1,j] + v_vel[i,j+1] - v_vel[i,j-1])
             p[i,j] = 0
     set_bnd(N_loc, 0, div)
     set_bnd(N_loc, 0, p)
     
+    plt.imshow(div, cmap="spectral")
+    plt.colorbar()
+    plt.show(block=False)
+    plt.draw()
+    
     while k<20:
-        for i in range (1,N_loc):
-            for j in range (1,N_loc):
+        for i in range (1,N_loc+1):
+            for j in range (1,N_loc+1):
                 p[i,j] = (div[i,j]+p[i-1,j] + p[i+1,j] + p[i,j-1] + p[i,j+1])/4
         set_bnd(N_loc, 0, p)
         k = k+1
+        
+    plt.imshow(p, cmap="spectral")
+    plt.colorbar()
+    plt.show(block=False)
+    plt.draw()
     
-    for i in range (1, N_loc):
-        for j in range (1, N_loc):
+    for i in range (1, N_loc+1):
+        for j in range (1, N_loc+1):
             h_vel[i,j] -= 0.5*(p[i+1,j] - p[i-1,j])/h
             v_vel[i,j] -= 0.5*(p[i,j+1] - p[i,j-1])/h
     set_bnd(N_loc, 1, h_vel)
@@ -151,14 +180,32 @@ def vel_step(N_loc, h_vel, v_vel, h_vel0, v_vel0, visc, dt):
     project (N_loc, h_vel, v_vel, h_vel0, v_vel0)
 
 
+#Smoke simulation loop
 
-while True:
-    vel_step(N, h, v, h0, v0, visc, dt)
-    diffuse (N, a, a0, visc, dt, 0)
-    a0 = a
-    advect(N, 0, a, a0, h, v, dt)
-    a0 = a
-    plt.imshow(a, cmap="gray") # draw the new plot
-    plt.show(block=False)
-    plt.draw()
+#while True:
+#    vel_step(N, h, v, h0, v0, visc, dt)
+#    diffuse (N, a, a0, visc, dt, 0)
+#    a0 = a
+#    advect(N, 0, a, a0, h, v, dt)
+#    a0 = a
+#    plt.imshow(a, cmap="spectral")
+#    plt.colorbar()
+#    plt.show(block=False)
+#    plt.draw()
     
+#Visualizing velocity fields at each stage through "vel_step" function
+
+plt.quiver(v, h, units = 'x', scale = .5)
+plt.show()
+
+diffuse(18,h,h0,visc,dt,1)
+plt.quiver(v, h, units = 'x', scale = .5)
+plt.show()
+
+diffuse(18,v,v0,visc,dt,1)
+plt.quiver(v, h, units = 'x', scale = .5)
+plt.show()
+
+project(18, h, v, h0, v0)
+plt.quiver(v, h, units = 'x', scale = .5)
+plt.show()
