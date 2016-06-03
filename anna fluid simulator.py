@@ -6,27 +6,29 @@ from matplotlib import animation
 #import cProfile
 #import re
 import advection as ad
+import os
+import random as rn
 
 
 #VARIABLE ASSIGNMENT
 
-a0 = np.zeros((100,100))
-a = np.zeros((100,100))
+N = 98 #N is two less than the total number of grid cells per plot side
+
+a0 = np.zeros((N+2,N+2))
+a = np.zeros((N+2,N+2))
 
 
-N = a0.shape[0]-2   #sets N as 2 less than the number of grid cells per plot side
+dt = 0.5   #defining dt
 
-dt = 1   #defining dt
-
-visc = .1   #defining viscosity constant
+visc = .00001   #defining viscosity constant
 
 bouy_con = 0.5
 
-h0 = np.zeros((100,100))
-v0 = np.zeros((100,100))
+h0 = np.zeros((N+2,N+2))
+v0 = np.zeros((N+2,N+2))
 
-v = np.zeros((100,100))
-h = np.zeros((100,100))
+v = np.zeros((N+2,N+2))
+h = np.zeros((N+2,N+2))
 
 
 #FUNCTION DEFINITIONS
@@ -90,8 +92,9 @@ def set_bnd2 (N_loc, array):
 
 def diffuse(array, array0, diff, N_loc, dt):
     k=0
+    a = dt*diff*N*N
     while k < 100:
-        array[1:(N_loc+1), 1:(N_loc+1)] = (array0[1:(N_loc + 1), 1:(N_loc + 1)] + diff*(array[2:(N_loc + 2), 1:(N_loc + 1)] + array[0:N_loc, 1:(N_loc + 1)] + array[1:(N_loc + 1), 2:(N_loc + 2)] + array[1:(N_loc + 1), 0:N_loc]))/(1+4*diff)
+        array[1:(N_loc+1), 1:(N_loc+1)] = (array0[1:(N_loc + 1), 1:(N_loc + 1)] + a*(array[2:(N_loc + 2), 1:(N_loc + 1)] + array[0:N_loc, 1:(N_loc + 1)] + array[1:(N_loc + 1), 2:(N_loc + 2)] + array[1:(N_loc + 1), 0:N_loc]))/(1+4*a)
 #        for i in range (1, N_loc + 1):
 #            for j in range (1, N_loc + 1):
 #                array[i,j] = (array0[i,j] + diff*(array[i+1, j] + array[i-1,j] + array[i,j+1] + array[i, j-1]))/(1+4*diff)
@@ -201,66 +204,93 @@ def set_source(array, N_loc):
 def set_vel(h_vel, v_vel, N_loc):
     midpnt = int(N_loc/4)
     half_width = int(N_loc/10)
-    h_vel[(midpnt-half_width):(midpnt + half_width), 1:(1 + 2*half_width)] = 2
-    v_vel[(midpnt-half_width):(midpnt + half_width), 1:(1 + 2*half_width)] = 1.5
+    h_vel[(midpnt-half_width):(midpnt + half_width), 1:(1 + 2*half_width)] = (N+2)/50 
+
+    v_vel[(midpnt-half_width):(midpnt + half_width), 1:(1 + 2*half_width)] = ((N+2)*3)/200
+
     
-    
-def bouyancy(array, v_vel, b_num, N_loc):
-    v_vel[1:(N_loc + 1),1:(N_loc + 1)] +=b_num*array[1:(N_loc + 1),1:(N_loc + 1)]
+def bouyancy(array, v_vel, b_num, N_loc, dt):
+    v_vel[1:(N_loc + 1),1:(N_loc + 1)] += dt*b_num*array[1:(N_loc + 1),1:(N_loc + 1)]
 #    for i in range (1, N_loc + 1):
 #        for j in range (1, N_loc + 1):
 #            v_vel[i,j] += b_num*array[i,j]
     set_bnd2(N_loc, v_vel)
     
+#Functions for Saving Array Files
 
-def animate(h_vel0, v_vel0, h_vel, v_vel, dens_array0, dens_array, N_loc, visc, bouy_con, dt):
-    project(h_vel0,v_vel0, N_loc)   #updates h0 and v0
-    ad.advect(h_vel0, v_vel0, h_vel, h_vel0, N_loc, dt)   #advects velocity fields along updated h0 v0 velocity field, updating h and v
-    set_bnd1(N_loc, h_vel)
-    ad.advect(h_vel0, v_vel0, v_vel, v_vel0, N_loc, dt)
-    set_bnd2(N_loc, v_vel)
-    project(h_vel, v_vel, N_loc)    #makes updated h, v velocity field incompressible again
-    diffuse(dens_array, dens_array0, visc, N_loc, dt)     #updates a from a0
-    dens_array0, dens_array = dens_array, dens_array0     #a0 now the updated density array
-    bouyancy(dens_array0, v_vel, bouy_con, N_loc)    #updates v proportional to the density quantity in the cell
-    ad.advect(h_vel, v_vel, dens_array, dens_array0, N_loc, dt) #updates a from a0 by advecting along updated h, v velocity field
-    set_bnd0(N_loc, dens_array)
-    dens_array0, dens_array = dens_array, dens_array0
-    h_vel0, h_vel = h_vel, h_vel0
-    v_vel0, v_vel = v_vel, v_vel0
-    draw_array(dens_array0)
-    set_source(dens_array0, N_loc)
-    print ("hello")
+def save_dens_array(n, array):
+    os.chdir('C:\\Users\\16AnnaBB\\Desktop\\SENIOR BACKUP\\Senior Project\\Stam Fluid Dynamics Solver\\Saved Arrays\\DensityArray')
+    filename = "densarray" + "_" + str(n)
+    np.save(str(filename), array)
+
+def save_vel_array(n, array, d):
+    #d refers to the direction of the velocity component: in 2d, h or v
+    if d == "H":
+        os.chdir('C:\\Users\\16AnnaBB\\Desktop\\SENIOR BACKUP\\Senior Project\\Stam Fluid Dynamics Solver\\Saved Arrays\\VelocityArray\\Horizontal')
+    if d == "V":
+        os.chdir('C:\\Users\\16AnnaBB\\Desktop\\SENIOR BACKUP\\Senior Project\\Stam Fluid Dynamics Solver\\Saved Arrays\\VelocityArray\\Vertical')
+    
+    filename = d + "_velarray_" + str(n)
+    np.save(str(filename), array)
 
 
+#def animate(i, h_vel0, v_vel0, h_vel, v_vel, dens_array0, dens_array, N_loc, visc, bouy_con, dt):
+#    project(h_vel0,v_vel0, N_loc)   #updates h0 and v0
+#    ad.advect(h_vel0, v_vel0, h_vel, h_vel0, N_loc, dt)   #advects velocity fields along updated h0 v0 velocity field, updating h and v
+#    set_bnd1(N_loc, h_vel)
+#    ad.advect(h_vel0, v_vel0, v_vel, v_vel0, N_loc, dt)
+#    set_bnd2(N_loc, v_vel)
+#    project(h_vel, v_vel, N_loc)    #makes updated h, v velocity field incompressible again
+#    diffuse(dens_array, dens_array0, visc, N_loc, dt)     #updates a from a0
+#    np.copyto(dens_array0, dens_array)                    #a0 now the updated density array
+#    bouyancy(dens_array0, v_vel, bouy_con, N_loc, dt)    #updates v proportional to the density quantity in the cell
+#    ad.advect(h_vel, v_vel, dens_array, dens_array0, N_loc, dt) #updates a from a0 by advecting along updated h, v velocity field
+#    set_bnd0(N_loc, dens_array)
+#    np.copyto(dens_array0, dens_array)
+#    np.copyto(h_vel0, h_vel)
+#    np.copyto(v_vel0, v_vel)
+#    draw_array(dens_array0)
+#    set_source(dens_array0, N_loc)
+#    set_vel(h_vel0, v_vel0, N_loc)
+
+    
 
 #STATEMENTS TO EXECUTE
 
-
 set_source(a0, N)
 set_vel(h0, v0, N)
-#draw_array(a0)
-#draw_vector_field(h0, v0, 0.5)
-#
+draw_array(a0)
+draw_vector_field(h0, v0, 0.5)
 
-#while True:
-#    project(h0,v0,N)   #updates h0 and v0
-#    ad.advect(h0, v0, h, h0, N, dt)   #advects velocity fields along updated h0 v0 velocity field, updating h and v
-#    set_bnd1(N, h)
-#    ad.advect(h0, v0, v, v0, N, dt)
-#    set_bnd2(N, v)
-#    project(h, v, N)    #makes updated h, v velocity field incompressible again
-#    diffuse(a, a0, visc, N, dt)     #updates a from a0
-#    a0, a = a, a0     #a0 now the updated density array
-#    bouyancy(a0, v, bouy_con, N)    #updates v proportional to the density quantity in the cell
-#    ad.advect(h, v, a, a0, N, dt) #updates a from a0 by advecting along updated h, v velocity field
-#    set_bnd0(N, a)
-#    a0, a = a, a0
-#    h0, h = h, h0
-#    v0, v = v, v0
-#    draw_array(a0)
-#    set_source(a0, N)
-#    set_vel(h0, v0, N)
+fr_num = 0
+save_dens_array(fr_num, a0)
+save_vel_array(fr_num, h0, "H")
+save_vel_array(fr_num, v0, "V")
+
+
+while True:
+    project(h0,v0,N)   #updates h0 and v0
+    ad.advect(h0, v0, h, h0, N, dt)   #advects velocity fields along updated h0 v0 velocity field, updating h and v
+    set_bnd1(N, h)
+    ad.advect(h0, v0, v, v0, N, dt)
+    set_bnd2(N, v)
+    project(h, v, N)    #makes updated h, v velocity field incompressible again
+    diffuse(a, a0, visc, N, dt)     #updates a from a0
+    a0, a = a, a0     #a0 now the updated density array
+    bouyancy(a0, v, bouy_con, N, dt)    #updates v proportional to the density quantity in the cell
+    ad.advect(h, v, a, a0, N, dt) #updates a from a0 by advecting along updated h, v velocity field
+    set_bnd0(N, a)
+    a0, a = a, a0
+    h0, h = h, h0
+    v0, v = v, v0
+    draw_array(a0)
+    fr_num += 1
+    save_dens_array(fr_num, a0)
+    save_vel_array(fr_num, h0, "H")
+    save_vel_array(fr_num, v0, "V")
+    
+    set_source(a0, N)
+    set_vel(h0, v0, N)
 
 
 
@@ -268,17 +298,17 @@ set_vel(h0, v0, N)
 #ANIMATION ATTEMPT
 
 
-# First set up the figure, the axis, and the plot element we want to animate
-fig = plt.figure()
-ax = plt.axes(xlim=(0, N+2), ylim=(0, N+2))
-
-
-#draw_array(a0)
-
-# call the animator.  blit=True means only re-draw the parts that have changed.
-anim = animation.FuncAnimation(fig, animate,fargs = (h0, v0, h, v, a0, a, N, visc, bouy_con, dt), interval = 1)
-
-plt.show()
+## First set up the figure, the axis, and the plot element we want to animate
+#fig = plt.figure()
+#ax = plt.axes(xlim=(0, N+2), ylim=(0, N+2))
+#
+#
+##draw_array(a0)
+#
+## call the animator.  blit=True means only re-draw the parts that have changed.
+#anim = animation.FuncAnimation(fig, animate,fargs = (h0, v0, h, v, a0, a, N, visc, bouy_con, dt), interval = 0)
+#
+#plt.show()
 
 
 #PYTHON PROFILER
